@@ -10,6 +10,7 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
 import net.kieker.sourceinstrumentation.instrument.InstrumentKiekerSource;
+import net.kieker.sourceinstrumentation.util.SourceInstrumentationTestUtil;
 import net.kieker.sourceinstrumentation.util.TestConstants;
 
 public class TestSourceInstrumentation {

@@ -16,9 +16,9 @@ public class SourceInstrumentationTestUtil {
    public static void initSimpleProject(String sourcePath) throws IOException {
       TestConstants.CURRENT_FOLDER.mkdirs();
       
+      FileUtils.copyFile(new File("src/test/resources/pom.xml"), new File(TestConstants.CURRENT_FOLDER, "pom.xml"));
       for (String path : new String[] {"src/main/java/de/peass/C0_0.java", 
-            "src/test/java/de/peass/MainTest.java", 
-            "pom.xml"}) {
+            "src/test/java/de/peass/MainTest.java"}) {
          copyResource(path, sourcePath);
       }
       for (String path : new String[] {
@@ -32,11 +32,11 @@ public class SourceInstrumentationTestUtil {
    public static void initProject(String sourcePath) throws IOException {
       TestConstants.CURRENT_FOLDER.mkdirs();
       
+      FileUtils.copyFile(new File("src/test/resources/pom.xml"), new File(TestConstants.CURRENT_FOLDER, "pom.xml"));
       for (String path : new String[] {"src/main/java/de/peass/C0_0.java", 
             "src/main/java/de/peass/C1_0.java", 
             "src/main/java/de/peass/AddRandomNumbers.java", 
-            "src/test/java/de/peass/MainTest.java", 
-            "pom.xml"}) {
+            "src/test/java/de/peass/MainTest.java" }) {
          copyResource(path, sourcePath);
       }
    }

@@ -22,9 +22,9 @@ import org.junit.jupiter.api.Test;
 
 import net.kieker.sourceinstrumentation.AllowedKiekerRecord;
 import net.kieker.sourceinstrumentation.InstrumentationConfiguration;
-import net.kieker.sourceinstrumentation.SourceInstrumentationTestUtil;
 import net.kieker.sourceinstrumentation.instrument.InstrumentKiekerSource;
 import net.kieker.sourceinstrumentation.util.MavenPomUtil;
+import net.kieker.sourceinstrumentation.util.SourceInstrumentationTestUtil;
 import net.kieker.sourceinstrumentation.util.StreamGobbler;
 import net.kieker.sourceinstrumentation.util.TestConstants;
 

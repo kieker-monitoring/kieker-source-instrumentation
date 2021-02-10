@@ -11,9 +11,8 @@ import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
-import net.kieker.sourceinstrumentation.InstrumentationConfiguration;
-import net.kieker.sourceinstrumentation.InstrumentationConstants;
 import net.kieker.sourceinstrumentation.instrument.InstrumentKiekerSource;
+import net.kieker.sourceinstrumentation.util.SourceInstrumentationTestUtil;
 import net.kieker.sourceinstrumentation.util.TestConstants;
 
 public class TestSampling {
