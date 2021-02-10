@@ -19,13 +19,14 @@ import com.github.javaparser.ast.Modifier.Keyword;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
+import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.stmt.BlockStmt;
 
 import kieker.monitoring.core.signaturePattern.InvalidPatternException;
 import kieker.monitoring.core.signaturePattern.PatternParser;
 import net.kieker.sourceinstrumentation.InstrumentationConfiguration;
-import net.kieker.sourceinstrumentation.SamplingParameters;
 import net.kieker.sourceinstrumentation.parseUtils.JavaParserProvider;
 import net.kieker.sourceinstrumentation.parseUtils.ParseUtil;
 
@@ -42,10 +43,10 @@ public class FileInstrumenter {
    private boolean oneHasChanged = false;
 
    private int counterIndex = 0;
-   private List<String> countersToAdd = new LinkedList<>();
-   private List<String> sumsToAdd = new LinkedList<>();
+   private final List<String> countersToAdd = new LinkedList<>();
+   private final List<String> sumsToAdd = new LinkedList<>();
 
-   public FileInstrumenter(File file, InstrumentationConfiguration configuration, BlockBuilder blockBuilder) throws FileNotFoundException {
+   public FileInstrumenter(final File file, final InstrumentationConfiguration configuration, final BlockBuilder blockBuilder) throws FileNotFoundException {
       this.unit = JavaParserProvider.parse(file);
       this.file = file;
       this.configuration = configuration;
@@ -53,32 +54,40 @@ public class FileInstrumenter {
    }
 
    public void instrument() throws IOException {
-      ClassOrInterfaceDeclaration clazz = ParseUtil.getClass(unit);
-      String packageName = unit.getPackageDeclaration().get().getNameAsString();
-      String name = packageName + "." + clazz.getNameAsString();
+      TypeDeclaration<?> clazz = ParseUtil.getClass(unit);
+      final String packageName = unit.getPackageDeclaration().get().getNameAsString();
+      handleTypeDeclaration(clazz, packageName);
+      TypeDeclaration<?> enumDecl = ParseUtil.getEnum(unit);
+      handleTypeDeclaration(enumDecl, packageName);
+   }
 
-      boolean fileContainsChange = handleChildren(clazz, name);
+   private void handleTypeDeclaration(final TypeDeclaration<?> clazz, final String packageName) throws IOException {
+      if (clazz != null) {
+         final String name = packageName + "." + clazz.getNameAsString();
 
-      if (fileContainsChange) {
-         for (String counterName : countersToAdd) {
-            clazz.addField("int", counterName, Keyword.PRIVATE, Keyword.STATIC);
+         boolean fileContainsChange = handleChildren(clazz, name);
+
+         if (fileContainsChange) {
+            for (String counterName : countersToAdd) {
+               clazz.addField("int", counterName, Keyword.PRIVATE, Keyword.STATIC);
+            }
+            for (String counterName : sumsToAdd) {
+               clazz.addField("long", counterName, Keyword.PRIVATE, Keyword.STATIC);
+            }
+            addImports(unit);
+            Files.write(file.toPath(), unit.toString().getBytes(StandardCharsets.UTF_8));
          }
-         for (String counterName : sumsToAdd) {
-            clazz.addField("long", counterName, Keyword.PRIVATE, Keyword.STATIC);
-         }
-         addImports(unit);
-         Files.write(file.toPath(), unit.toString().getBytes(StandardCharsets.UTF_8));
       }
    }
 
-   private void addImports(CompilationUnit unit) {
+   private void addImports(final CompilationUnit unit) {
       unit.addImport("kieker.monitoring.core.controller.MonitoringController");
       unit.addImport("kieker.monitoring.core.registry.ControlFlowRegistry");
       unit.addImport("kieker.monitoring.core.registry.SessionRegistry");
       unit.addImport(configuration.getUsedRecord().getRecord());
    }
 
-   private boolean handleChildren(ClassOrInterfaceDeclaration clazz, String name) {
+   private boolean handleChildren(final TypeDeclaration<?> clazz, final String name) {
       boolean constructorFound = false;
       for (Node child : clazz.getChildNodes()) {
          if (child instanceof MethodDeclaration) {
@@ -93,37 +102,57 @@ public class FileInstrumenter {
          }
       }
       if (!constructorFound && configuration.isCreateDefaultConstructor()) {
-         
-         SignatureReader reader = new SignatureReader(unit, name);
-         String signature = reader.getDefaultConstructor(clazz);
-         if (testSignatureMatch(signature)) {
-            oneHasChanged = true;
-            BlockStmt constructorBlock = blockBuilder.buildEmptyConstructor(signature);
-            ConstructorDeclaration constructor = clazz.addConstructor(Modifier.Keyword.PUBLIC);
-            constructor.setBody(constructorBlock);
+         if (clazz instanceof EnumDeclaration) {
+            createDefaultConstructor(clazz, name, Modifier.Keyword.PRIVATE);
+         } else if (clazz instanceof ClassOrInterfaceDeclaration) {
+            ClassOrInterfaceDeclaration clazzDecl = (ClassOrInterfaceDeclaration) clazz;
+            if (!clazzDecl.isInterface()) {
+               createDefaultConstructor(clazz, name, Modifier.Keyword.PUBLIC);
+            }
          }
       }
       return oneHasChanged;
    }
 
-   private void instrumentConstructor(ClassOrInterfaceDeclaration clazz, String name, Node child) {
-      if (name.contains("org.apache.commons.fileupload.MockHttpServletRequest")) {
-         System.out.println("test");
-      }
-      ConstructorDeclaration constructor = (ConstructorDeclaration) child;
-      final BlockStmt originalBlock = constructor.getBody();
+   private void createDefaultConstructor(final TypeDeclaration<?> clazz, final String name, final Keyword visibility) {
       SignatureReader reader = new SignatureReader(unit, name);
-      String signature = reader.getSignature(clazz, constructor);
-      boolean oneMatches = testSignatureMatch(signature);
+      String signature = reader.getDefaultConstructor(clazz);
+      if (testSignatureMatch(signature)) {
+         oneHasChanged = true;
+         final SamplingParameters parameters = createParameters(signature);
+         BlockStmt constructorBlock = blockBuilder.buildEmptyConstructor(parameters);
+         ConstructorDeclaration constructor = clazz.addConstructor(visibility);
+         constructor.setBody(constructorBlock);
+      }
+   }
+
+   private void instrumentConstructor(final TypeDeclaration<?> clazz, final String name, final Node child) {
+      final ConstructorDeclaration constructor = (ConstructorDeclaration) child;
+      final BlockStmt originalBlock = constructor.getBody();
+      final SignatureReader reader = new SignatureReader(unit, name);
+      final String signature = reader.getSignature(clazz, constructor);
+      final boolean oneMatches = testSignatureMatch(signature);
       if (oneMatches) {
-         BlockStmt replacedStatement = blockBuilder.buildConstructorStatement(originalBlock, signature, true);
+         final SamplingParameters parameters = createParameters(signature);
+
+         final BlockStmt replacedStatement = blockBuilder.buildConstructorStatement(originalBlock, true, parameters);
 
          constructor.setBody(replacedStatement);
          oneHasChanged = true;
       }
    }
 
-   private int instrumentMethod(String name, Node child) {
+   private SamplingParameters createParameters(final String signature) {
+      final SamplingParameters parameters = new SamplingParameters(signature, counterIndex);
+      if (configuration.isSample()) {
+         countersToAdd.add(parameters.getCounterName());
+         sumsToAdd.add(parameters.getSumName());
+         counterIndex++;
+      }
+      return parameters;
+   }
+
+   private int instrumentMethod(final String name, final Node child) {
       MethodDeclaration method = (MethodDeclaration) child;
       final Optional<BlockStmt> body = method.getBody();
 
@@ -133,17 +162,10 @@ public class FileInstrumenter {
          String signature = reader.getSignature(method);
          boolean oneMatches = testSignatureMatch(signature);
          if (oneMatches) {
-            final BlockStmt replacedStatement;
             final boolean needsReturn = method.getType().toString().equals("void");
-            if (configuration.isSample()) {
-               SamplingParameters parameters = new SamplingParameters(signature, counterIndex);
-               countersToAdd.add(parameters.getCounterName());
-               sumsToAdd.add(parameters.getSumName());
-               replacedStatement = blockBuilder.buildSampleStatement(originalBlock, signature, needsReturn, parameters);
-               counterIndex++;
-            } else {
-               replacedStatement = blockBuilder.buildStatement(originalBlock, signature, needsReturn);
-            }
+            final SamplingParameters parameters = createParameters(signature);
+
+            final BlockStmt replacedStatement = blockBuilder.buildStatement(originalBlock, needsReturn, parameters);
 
             method.setBody(replacedStatement);
             oneHasChanged = true;
@@ -155,6 +177,9 @@ public class FileInstrumenter {
    }
 
    private boolean testSignatureMatch(final String signature) {
+      if (configuration.getIncludedPatterns() == null) {
+         return true;
+      }
       boolean oneMatches = false;
       for (String pattern : configuration.getIncludedPatterns()) {
          pattern = fixConstructorPattern(pattern);

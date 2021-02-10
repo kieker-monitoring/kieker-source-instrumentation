@@ -11,8 +11,10 @@ import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
+import net.kieker.sourceinstrumentation.InstrumentationConfiguration;
+import net.kieker.sourceinstrumentation.InstrumentationConstants;
 import net.kieker.sourceinstrumentation.instrument.InstrumentKiekerSource;
-import net.kieker.sourceinstrumentation.util.SourceInstrumentationTestUtil;
+import net.kieker.sourceinstrumentation.util.TestConstants;
 
 public class TestSampling {
    @Test
@@ -22,7 +24,7 @@ public class TestSampling {
       Set<String> includedPatterns = new HashSet<>();
       includedPatterns.add("public void de.peass.MainTest.testMe()");
 
-      InstrumentationConfiguration kiekerConfiguration = new InstrumentationConfiguration(AllowedKiekerRecord.REDUCED_OPERATIONEXECUTION, true, includedPatterns);
+      InstrumentationConfiguration kiekerConfiguration = new InstrumentationConfiguration(AllowedKiekerRecord.REDUCED_OPERATIONEXECUTION, true, includedPatterns, false, false);
       InstrumentKiekerSource instrumenter = new InstrumentKiekerSource(kiekerConfiguration);
       instrumenter.instrumentProject(TestConstants.CURRENT_FOLDER);
 
@@ -35,13 +37,15 @@ public class TestSampling {
 
       Set<String> includedPatterns = new HashSet<>();
       includedPatterns.add("public void de.peass.MainTest.testMe()");
+      includedPatterns.add("public * de.peass.MainTest.<init>()");
       includedPatterns.add("public java.lang.String de.peass.C0_0.method0(java.lang.String)");
       includedPatterns.add("public static void de.peass.C0_0.myStaticStuff()");
 
-      InstrumentationConfiguration kiekerConfiguration = new InstrumentationConfiguration(AllowedKiekerRecord.REDUCED_OPERATIONEXECUTION, true, includedPatterns);
+      InstrumentationConfiguration kiekerConfiguration = new InstrumentationConfiguration(AllowedKiekerRecord.REDUCED_OPERATIONEXECUTION, true, includedPatterns, false, false);
       InstrumentKiekerSource instrumenter = new InstrumentKiekerSource(kiekerConfiguration);
       instrumenter.instrumentProject(TestConstants.CURRENT_FOLDER);
 
+      testIsSamplingInstrumented("src/test/java/de/peass/MainTest.java", "public new de.peass.MainTest.<init>()", "initCounter");
       testIsSamplingInstrumented("src/test/java/de/peass/MainTest.java", "public void de.peass.MainTest.testMe()", "testMeCounter");
       testIsSamplingInstrumented("src/main/java/de/peass/C0_0.java", "public java.lang.String de.peass.C0_0.method0(java.lang.String", "method0Counter");
       testIsSamplingInstrumented("src/main/java/de/peass/C0_0.java", "public static void de.peass.C0_0.myStaticStuff()", "myStaticStuffCounter1");
@@ -53,7 +57,7 @@ public class TestSampling {
             instrumentedMethod, "ReducedOperationExecutionRecord");
 
       String changedSource = FileUtils.readFileToString(instrumentedFile, StandardCharsets.UTF_8);
-      MatcherAssert.assertThat(changedSource, Matchers.containsString("if (" + counterName));
-      MatcherAssert.assertThat(changedSource, Matchers.containsString("private static int " + counterName));
+      MatcherAssert.assertThat(changedSource, Matchers.containsString("if (" + InstrumentationConstants.PREFIX + counterName));
+      MatcherAssert.assertThat(changedSource, Matchers.containsString("private static int " + InstrumentationConstants.PREFIX + counterName));
    }
 }

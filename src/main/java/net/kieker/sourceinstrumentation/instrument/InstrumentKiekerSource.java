@@ -24,28 +24,28 @@ public class InstrumentKiekerSource {
    private static final Logger LOG = LogManager.getLogger(InstrumentKiekerSource.class);
 
    private InstrumentationConfiguration configuration;
-   
+
    private final BlockBuilder blockBuilder;
 
-   public InstrumentKiekerSource(AllowedKiekerRecord usedRecord) {
-      configuration = new InstrumentationConfiguration(usedRecord, false, true, true, new HashSet<>());
+   public InstrumentKiekerSource(final AllowedKiekerRecord usedRecord) {
+      configuration = new InstrumentationConfiguration(usedRecord, false, true, true, new HashSet<>(), false);
       configuration.getIncludedPatterns().add("*");
-      this.blockBuilder = new BlockBuilder(configuration.getUsedRecord(), true);
+      this.blockBuilder = configuration.isSample() ? new SamplingBlockBuilder(configuration.getUsedRecord()) : new BlockBuilder(configuration.getUsedRecord(), true);
    }
 
-   public InstrumentKiekerSource(InstrumentationConfiguration configuration) {
+   public InstrumentKiekerSource(final InstrumentationConfiguration configuration) {
       this.configuration = configuration;
-      this.blockBuilder = new BlockBuilder(configuration.getUsedRecord(), false);
+      this.blockBuilder = configuration.isSample() ? new SamplingBlockBuilder(configuration.getUsedRecord()) : new BlockBuilder(configuration.getUsedRecord(), configuration.isEnableDeactivation());
    }
 
-   public void instrumentProject(File projectFolder) throws IOException {
+   public void instrumentProject(final File projectFolder) throws IOException {
       for (File javaFile : FileUtils.listFiles(projectFolder, new WildcardFileFilter("*.java"), TrueFileFilter.INSTANCE)) {
          LOG.debug("Instrumenting: " + javaFile);
          instrument(javaFile);
       }
    }
 
-   public void instrument(File file) throws IOException {
+   public void instrument(final File file) throws IOException {
       FileInstrumenter instrumenter = new FileInstrumenter(file, configuration, blockBuilder);
       instrumenter.instrument();
    }

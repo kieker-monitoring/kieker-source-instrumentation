@@ -15,11 +15,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import net.kieker.sourceinstrumentation.AllowedKiekerRecord;
-import net.kieker.sourceinstrumentation.TestConstants;
+import net.kieker.sourceinstrumentation.SourceInstrumentationTestUtil;
 import net.kieker.sourceinstrumentation.instrument.InstrumentKiekerSource;
-import net.kieker.sourceinstrumentation.util.SourceInstrumentationTestUtil;
 import net.kieker.sourceinstrumentation.util.StreamGobbler;
-
+import net.kieker.sourceinstrumentation.util.TestConstants;
 
 public class SourceInstrumentationIT {
    

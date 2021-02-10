@@ -1,4 +1,4 @@
-package net.kieker.sourceinstrumentation;
+package net.kieker.sourceinstrumentation.util;
 
 import java.io.File;
 

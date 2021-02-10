@@ -1,4 +1,4 @@
-package net.kieker.sourceinstrumentation.util;
+package net.kieker.sourceinstrumentation;
 
 import java.io.File;
 import java.io.IOException;
@@ -9,11 +9,11 @@ import org.apache.commons.io.FileUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 
-import net.kieker.sourceinstrumentation.TestSourceInstrumentation;
+import net.kieker.sourceinstrumentation.util.TestConstants;
 
 public class SourceInstrumentationTestUtil {
    
-   public static void initSimpleProject(String sourcePath) throws IOException {
+   public static void initSimpleProject(final String sourcePath) throws IOException {
       TestConstants.CURRENT_FOLDER.mkdirs();
       
       for (String path : new String[] {"src/main/java/de/peass/C0_0.java", 
@@ -29,7 +29,7 @@ public class SourceInstrumentationTestUtil {
       }
    }
    
-   public static void initProject(String sourcePath) throws IOException {
+   public static void initProject(final String sourcePath) throws IOException {
       TestConstants.CURRENT_FOLDER.mkdirs();
       
       for (String path : new String[] {"src/main/java/de/peass/C0_0.java", 
@@ -41,17 +41,18 @@ public class SourceInstrumentationTestUtil {
       }
    }
    
-   public static File copyResource(String name, String sourcePath) throws IOException {
+   public static File copyResource(final String name, final String sourcePath) throws IOException {
       File testFile = new File(TestConstants.CURRENT_FOLDER, name);
       if (!testFile.getParentFile().exists()) {
          testFile.getParentFile().mkdirs();
       }
+      System.out.println(sourcePath + name);
       final URL exampleClass = TestSourceInstrumentation.class.getResource(sourcePath + name);
       FileUtils.copyURLToFile(exampleClass, testFile);
       return testFile;
    }
    
-   public static void testFileIsNotInstrumented(File testFile, String fqn) throws IOException {
+   public static void testFileIsNotInstrumented(final File testFile, final String fqn) throws IOException {
       String changedSource = FileUtils.readFileToString(testFile, StandardCharsets.UTF_8);
 
       MatcherAssert.assertThat(changedSource, Matchers.not(Matchers.containsString("MonitoringController.getInstance().isMonitoringEnabled()")));

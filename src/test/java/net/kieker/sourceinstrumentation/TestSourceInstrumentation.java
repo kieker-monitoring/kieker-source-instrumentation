@@ -10,7 +10,7 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
 import net.kieker.sourceinstrumentation.instrument.InstrumentKiekerSource;
-import net.kieker.sourceinstrumentation.util.SourceInstrumentationTestUtil;
+import net.kieker.sourceinstrumentation.util.TestConstants;
 
 public class TestSourceInstrumentation {
 
@@ -26,7 +26,20 @@ public class TestSourceInstrumentation {
       testFileIsInstrumented(testFile, "public void de.peass.C0_0.method0()", "OperationExecutionRecord");
    }
 
-   public static void testFileIsInstrumented(File testFile, String fqn, String recordName) throws IOException {
+   @Test
+   public void testUtilClass() throws IOException {
+      TestConstants.CURRENT_FOLDER.mkdirs();
+
+      File testFile = new File(TestConstants.CURRENT_FOLDER, "Utils.java");
+      FileUtils.copyFile(new File("src/test/resources/Utils.java"), testFile);
+
+      InstrumentKiekerSource instrumenter = new InstrumentKiekerSource(AllowedKiekerRecord.OPERATIONEXECUTION);
+      instrumenter.instrument(testFile);
+
+      testFileIsInstrumented(testFile, "public static java.util.Date com.test.Utils.utilMethod(java.lang.String)", "OperationExecutionRecord");
+   }
+
+   public static void testFileIsInstrumented(final File testFile, final String fqn, final String recordName) throws IOException {
       String changedSource = FileUtils.readFileToString(testFile, StandardCharsets.UTF_8);
 
       MatcherAssert.assertThat(changedSource, Matchers.containsString("import kieker.monitoring.core.controller.MonitoringController;"));
@@ -70,9 +83,9 @@ public class TestSourceInstrumentation {
 
    private void testConstructorVisibility() throws IOException {
       String changedSourceC1 = FileUtils.readFileToString(new File(TestConstants.CURRENT_FOLDER, "src/main/java/de/peass/C1_0.java"), StandardCharsets.UTF_8);
-      MatcherAssert.assertThat(changedSourceC1, Matchers.containsString("String signature = \"public new de.peass.C1_0.<init>()\""));
+      MatcherAssert.assertThat(changedSourceC1, Matchers.containsString("String " + InstrumentationConstants.PREFIX + "signature = \"public new de.peass.C1_0.<init>()\""));
       String changedSourceC0 = FileUtils.readFileToString(new File(TestConstants.CURRENT_FOLDER, "src/main/java/de/peass/C0_0.java"), StandardCharsets.UTF_8);
-      MatcherAssert.assertThat(changedSourceC0, Matchers.containsString("String signature = \"new de.peass.C0_0.<init>()\""));
+      MatcherAssert.assertThat(changedSourceC0, Matchers.containsString("String " + InstrumentationConstants.PREFIX + "signature = \"new de.peass.C0_0.<init>()\""));
    }
 
    @Test
