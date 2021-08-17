@@ -4,8 +4,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.github.javaparser.ast.NodeList;
+import com.github.javaparser.ast.expr.Expression;
+import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.ExplicitConstructorInvocationStmt;
+import com.github.javaparser.ast.stmt.IfStmt;
 import com.github.javaparser.ast.stmt.Statement;
 import com.github.javaparser.ast.stmt.TryStmt;
 
@@ -18,15 +22,16 @@ public class BlockBuilder {
    private static final Logger LOG = LogManager.getLogger(BlockBuilder.class);
 
    protected final AllowedKiekerRecord recordType;
-   private final boolean enableDeactivation;
+   private final boolean enableDeactivation, enableAdaptiveMonitoring;
 
-   public BlockBuilder(final AllowedKiekerRecord recordType, final boolean enableDeactivation) {
+   public BlockBuilder(final AllowedKiekerRecord recordType, final boolean enableDeactivation, final boolean enableAdaptiveMonitoring) {
       this.recordType = recordType;
       this.enableDeactivation = enableDeactivation;
+      this.enableAdaptiveMonitoring = enableAdaptiveMonitoring;
    }
 
-   public BlockStmt buildConstructorStatement(final BlockStmt originalBlock, final boolean addReturn, final SamplingParameters parameters) {
-      LOG.debug("Statements: " + originalBlock.getStatements().size() + " " + parameters.getSignature());
+   public BlockStmt buildConstructorStatement(final BlockStmt originalBlock, final boolean mayNeedReturn, final SamplingParameters parameters) {
+      LOG.trace("Statements: " + originalBlock.getStatements().size() + " " + parameters.getSignature());
       final BlockStmt replacedStatement = new BlockStmt();
       final ExplicitConstructorInvocationStmt constructorStatement = findConstructorInvocation(originalBlock);
       if (constructorStatement != null) {
@@ -34,7 +39,7 @@ public class BlockBuilder {
          originalBlock.getStatements().remove(constructorStatement);
       }
 
-      final BlockStmt regularChangedStatement = buildStatement(originalBlock, addReturn, parameters);
+      final BlockStmt regularChangedStatement = buildStatement(originalBlock, mayNeedReturn, parameters);
       for (Statement st : regularChangedStatement.getStatements()) {
          replacedStatement.addAndGetStatement(st);
       }
@@ -52,20 +57,20 @@ public class BlockBuilder {
       return constructorStatement;
    }
 
-   public BlockStmt buildStatement(final BlockStmt originalBlock, final boolean addReturn, final SamplingParameters parameters) {
+   public BlockStmt buildStatement(final BlockStmt originalBlock, final boolean mayNeedReturn, final SamplingParameters parameters) {
       if (recordType.equals(AllowedKiekerRecord.OPERATIONEXECUTION)) {
-         return buildOperationExecutionStatement(originalBlock, parameters.getSignature(), addReturn);
+         return buildOperationExecutionStatement(originalBlock, parameters.getSignature(), mayNeedReturn);
       } else if (recordType.equals(AllowedKiekerRecord.REDUCED_OPERATIONEXECUTION)) {
-         return buildReducedOperationExecutionStatement(originalBlock, parameters.getSignature(), addReturn);
+         return buildReducedOperationExecutionStatement(originalBlock, parameters.getSignature(), mayNeedReturn);
       } else {
          throw new RuntimeException();
       }
    }
 
-   public BlockStmt buildReducedOperationExecutionStatement(final BlockStmt originalBlock, final String signature, final boolean addReturn) {
+   public BlockStmt buildReducedOperationExecutionStatement(final BlockStmt originalBlock, final String signature, final boolean mayNeedReturn) {
       BlockStmt replacedStatement = new BlockStmt();
 
-      buildHeader(originalBlock, signature, addReturn, replacedStatement);
+      buildHeader(originalBlock, signature, mayNeedReturn, replacedStatement);
       replacedStatement.addAndGetStatement(InstrumentationCodeBlocks.REDUCED_OPERATIONEXECUTION.getBefore());
 
       BlockStmt finallyBlock = new BlockStmt();
@@ -75,10 +80,10 @@ public class BlockBuilder {
       return replacedStatement;
    }
 
-   public BlockStmt buildOperationExecutionStatement(final BlockStmt originalBlock, final String signature, final boolean addReturn) {
+   public BlockStmt buildOperationExecutionStatement(final BlockStmt originalBlock, final String signature, final boolean mayNeedReturn) {
       BlockStmt replacedStatement = new BlockStmt();
 
-      buildHeader(originalBlock, signature, addReturn, replacedStatement);
+      buildHeader(originalBlock, signature, mayNeedReturn, replacedStatement);
       replacedStatement.addAndGetStatement(InstrumentationCodeBlocks.OPERATIONEXECUTION.getBefore());
       BlockStmt finallyBlock = new BlockStmt();
       finallyBlock.addAndGetStatement(InstrumentationCodeBlocks.OPERATIONEXECUTION.getAfter());
@@ -87,19 +92,23 @@ public class BlockBuilder {
       return replacedStatement;
    }
 
-   private void buildHeader(final BlockStmt originalBlock, final String signature, final boolean addReturn, final BlockStmt replacedStatement) {
+   private void buildHeader(final BlockStmt originalBlock, final String signature, final boolean needsReturn, final BlockStmt replacedStatement) {
+      boolean afterUnreachable = ReachabilityDecider.isAfterUnreachable(originalBlock);
+
+      boolean addReturn = needsReturn && !afterUnreachable;
+      BlockStmt changed = addReturn ? originalBlock.addStatement("return;") : originalBlock;
+      
       if (enableDeactivation) {
-         replacedStatement.addAndGetStatement("if (!MonitoringController.getInstance().isMonitoringEnabled()) {\n" +
-               originalBlock.toString() + "\n" +
-               (addReturn ? "return;" : "") +
-               "      }");
+         Expression expr = new MethodCallExpr("!MonitoringController.getInstance().isMonitoringEnabled");
+         IfStmt ifS = new IfStmt(expr, changed, null);
+         replacedStatement.addStatement(ifS);
       }
       replacedStatement.addAndGetStatement("final String " + InstrumentationConstants.PREFIX + "signature = \"" + signature + "\";");
-      if (enableDeactivation) {
-         replacedStatement.addAndGetStatement("if (!MonitoringController.getInstance().isProbeActivated(" + InstrumentationConstants.PREFIX + "signature)) {\n" +
-               originalBlock.toString() +
-               (addReturn ? "return;" : "") +
-               "      }");
+      if (enableAdaptiveMonitoring) {
+         NameExpr name = new NameExpr(InstrumentationConstants.PREFIX + "signature");
+         Expression expr = new MethodCallExpr("!MonitoringController.getInstance().isProbeActivated", name);
+         IfStmt ifS = new IfStmt(expr, changed, null);
+         replacedStatement.addStatement(ifS);
       }
    }
 

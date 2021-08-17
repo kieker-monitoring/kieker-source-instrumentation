@@ -3,11 +3,13 @@ package net.kieker.sourceinstrumentation.instrument;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.NodeList;
+import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
@@ -16,6 +18,7 @@ import com.github.javaparser.ast.type.ArrayType;
 import com.github.javaparser.ast.type.Type;
 
 import net.kieker.sourceinstrumentation.parseUtils.ClazzFinder;
+
 
 public class SignatureReader {
 
@@ -124,6 +127,14 @@ public class SignatureReader {
 
    private String getTypeFQN(final Type type) {
       String typeName = type.asString();
+
+      // TODO By this implementation, generics are just removed; in general, source instrumentation would allow to capture the generic declaration
+      if (typeName.contains("<")) {
+         String beforeGenerics = typeName.substring(0, typeName.indexOf('<'));
+         String afterGenerics = typeName.substring(typeName.lastIndexOf('>') + 1, typeName.length());
+         typeName = beforeGenerics + afterGenerics;
+
+      }
       if (typeName.equals("void")) {
          return typeName;
       }
@@ -168,12 +179,14 @@ public class SignatureReader {
             matchingInnerClass = innerClass;
          }
       }
+      Optional<PackageDeclaration> packageDeclaration = unit.getPackageDeclaration();
+      String packageName = packageDeclaration.isPresent() ? packageDeclaration.get().getNameAsString() + "." : "";
       if (matchingInnerClass != null) {
-         fqn = unit.getPackageDeclaration().get().getNameAsString() + "." + matchingInnerClass;
+         fqn = packageName + matchingInnerClass;
       } else if (javaLangClasses.contains(typeNameWithoutArray)) {
          fqn = "java.lang." + typeNameWithoutArray;
       } else {
-         fqn = unit.getPackageDeclaration().get().getNameAsString() + "." + typeNameWithoutArray;
+         fqn = packageName + typeNameWithoutArray;
       }
       return fqn;
    }

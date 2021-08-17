@@ -8,7 +8,6 @@ import java.nio.file.Files;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,6 +16,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.Modifier.Keyword;
 import com.github.javaparser.ast.Node;
+import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
@@ -24,8 +24,6 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.stmt.BlockStmt;
 
-import kieker.monitoring.core.signaturePattern.InvalidPatternException;
-import kieker.monitoring.core.signaturePattern.PatternParser;
 import net.kieker.sourceinstrumentation.InstrumentationConfiguration;
 import net.kieker.sourceinstrumentation.parseUtils.JavaParserProvider;
 import net.kieker.sourceinstrumentation.parseUtils.ParseUtil;
@@ -45,17 +43,20 @@ public class FileInstrumenter {
    private int counterIndex = 0;
    private final List<String> countersToAdd = new LinkedList<>();
    private final List<String> sumsToAdd = new LinkedList<>();
+   private SignatureMatchChecker checker;
 
    public FileInstrumenter(final File file, final InstrumentationConfiguration configuration, final BlockBuilder blockBuilder) throws FileNotFoundException {
       this.unit = JavaParserProvider.parse(file);
       this.file = file;
       this.configuration = configuration;
       this.blockBuilder = blockBuilder;
+      checker = new SignatureMatchChecker(configuration.getIncludedPatterns(), configuration.getExcludedPatterns());
    }
 
    public void instrument() throws IOException {
       TypeDeclaration<?> clazz = ParseUtil.getClass(unit);
-      final String packageName = unit.getPackageDeclaration().get().getNameAsString();
+      Optional<PackageDeclaration> packageDeclaration = unit.getPackageDeclaration();
+      final String packageName = packageDeclaration.isPresent() ? packageDeclaration.get().getNameAsString() + "." : "";
       handleTypeDeclaration(clazz, packageName);
       TypeDeclaration<?> enumDecl = ParseUtil.getEnum(unit);
       handleTypeDeclaration(enumDecl, packageName);
@@ -63,7 +64,7 @@ public class FileInstrumenter {
 
    private void handleTypeDeclaration(final TypeDeclaration<?> clazz, final String packageName) throws IOException {
       if (clazz != null) {
-         final String name = packageName + "." + clazz.getNameAsString();
+         final String name = packageName + clazz.getNameAsString();
 
          boolean fileContainsChange = handleChildren(clazz, name);
 
@@ -91,7 +92,15 @@ public class FileInstrumenter {
       boolean constructorFound = false;
       for (Node child : clazz.getChildNodes()) {
          if (child instanceof MethodDeclaration) {
-            instrumentMethod(name, child);
+            MethodDeclaration method = (MethodDeclaration) child;
+            if (clazz instanceof ClassOrInterfaceDeclaration) {
+               ClassOrInterfaceDeclaration declaringEntity = (ClassOrInterfaceDeclaration) clazz;
+               if (!declaringEntity.isInterface() || method.getBody().isPresent()) {
+                  instrumentMethod(name, method);
+               }
+            } else {
+               instrumentMethod(name, method);
+            }
          } else if (child instanceof ConstructorDeclaration) {
             instrumentConstructor(clazz, name, child);
             constructorFound = true;
@@ -117,7 +126,7 @@ public class FileInstrumenter {
    private void createDefaultConstructor(final TypeDeclaration<?> clazz, final String name, final Keyword visibility) {
       SignatureReader reader = new SignatureReader(unit, name);
       String signature = reader.getDefaultConstructor(clazz);
-      if (testSignatureMatch(signature)) {
+      if (checker.testSignatureMatch(signature)) {
          oneHasChanged = true;
          final SamplingParameters parameters = createParameters(signature);
          BlockStmt constructorBlock = blockBuilder.buildEmptyConstructor(parameters);
@@ -131,11 +140,12 @@ public class FileInstrumenter {
       final BlockStmt originalBlock = constructor.getBody();
       final SignatureReader reader = new SignatureReader(unit, name);
       final String signature = reader.getSignature(clazz, constructor);
-      final boolean oneMatches = testSignatureMatch(signature);
+      final boolean oneMatches = checker.testSignatureMatch(signature);
       if (oneMatches) {
          final SamplingParameters parameters = createParameters(signature);
 
-         final BlockStmt replacedStatement = blockBuilder.buildConstructorStatement(originalBlock, true, parameters);
+         boolean configurationRequiresReturn = configuration.isEnableAdaptiveMonitoring() || configuration.isEnableDeactivation();
+         final BlockStmt replacedStatement = blockBuilder.buildConstructorStatement(originalBlock, configurationRequiresReturn, parameters);
 
          constructor.setBody(replacedStatement);
          oneHasChanged = true;
@@ -152,17 +162,17 @@ public class FileInstrumenter {
       return parameters;
    }
 
-   private int instrumentMethod(final String name, final Node child) {
-      MethodDeclaration method = (MethodDeclaration) child;
+   private int instrumentMethod(final String name, final MethodDeclaration method) {
       final Optional<BlockStmt> body = method.getBody();
 
       if (body.isPresent()) {
          BlockStmt originalBlock = body.get();
          SignatureReader reader = new SignatureReader(unit, name + "." + method.getNameAsString());
          String signature = reader.getSignature(method);
-         boolean oneMatches = testSignatureMatch(signature);
+         boolean oneMatches = checker.testSignatureMatch(signature);
          if (oneMatches) {
-            final boolean needsReturn = method.getType().toString().equals("void");
+            boolean configurationRequiresReturn = configuration.isEnableAdaptiveMonitoring() || configuration.isEnableDeactivation();
+            final boolean needsReturn = method.getType().toString().equals("void") && configurationRequiresReturn;
             final SamplingParameters parameters = createParameters(signature);
 
             final BlockStmt replacedStatement = blockBuilder.buildStatement(originalBlock, needsReturn, parameters);
@@ -171,53 +181,10 @@ public class FileInstrumenter {
             oneHasChanged = true;
          }
       } else {
-         LOG.info("Unable to instrument " + name + "." + method.getNameAsString() + " because it has no body");
+         if (!method.isAbstract()) {
+            LOG.info("Unable to instrument " + name + "." + method.getNameAsString() + " because it has no body");
+         }
       }
       return counterIndex;
    }
-
-   private boolean testSignatureMatch(final String signature) {
-      if (configuration.getIncludedPatterns() == null) {
-         return true;
-      }
-      boolean oneMatches = false;
-      for (String pattern : configuration.getIncludedPatterns()) {
-         pattern = fixConstructorPattern(pattern);
-         try {
-            Pattern patternP = PatternParser.parseToPattern(pattern);
-            if (patternP.matcher(signature).matches()) {
-               oneMatches = true;
-               break;
-            }
-         } catch (InvalidPatternException e) {
-            LOG.error("Wrong pattern: {}", pattern);
-            throw new RuntimeException(e);
-         }
-
-      }
-      return oneMatches;
-   }
-
-   /**
-    * In Kieker 1.14, the return type new is ignored for pattern. Therefore, * needs to be set as return type of constructors in pattern.
-    */
-   private String fixConstructorPattern(String pattern) {
-      if (pattern.contains("<init>")) {
-         final String[] tokens = pattern.substring(0, pattern.indexOf('(')).trim().split("\\s+");
-         int returnTypeIndex = 0;
-         String modifier = "";
-         if (tokens[0].equals("private") || tokens[0].equals("public") || tokens[0].equals("protected")) {
-            returnTypeIndex++;
-            modifier = tokens[0];
-         }
-         final String returnType = tokens[returnTypeIndex];
-         if (returnType.equals("new")) {
-            String patternChanged = modifier + " *" + pattern.substring(pattern.indexOf("new") + 3);
-            LOG.debug("Changing pattern {} to {}, since Kieker 1.14 does not allow pattern with new", pattern, patternChanged);
-            pattern = patternChanged;
-         }
-      }
-      return pattern;
-   }
-
 }
