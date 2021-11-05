@@ -15,7 +15,7 @@ import net.kieker.sourceinstrumentation.parseUtils.StreamGobbler;
 import net.kieker.sourceinstrumentation.util.TestConstants;
 
 public class SimpleProjectUtil {
-   public static File obtainLogs(final String projectFolder) throws IOException {
+   public static String obtainLogs(final String projectFolder) throws IOException {
       SourceInstrumentationTestUtil.initSimpleProject(projectFolder);
 
       InstrumentKiekerSource instrumenter = new InstrumentKiekerSource(AllowedKiekerRecord.OPERATIONEXECUTION);
@@ -25,12 +25,8 @@ public class SimpleProjectUtil {
             "-Djava.io.tmpdir=" + TestConstants.CURRENT_RESULTS.getAbsolutePath());
       pb.directory(TestConstants.CURRENT_FOLDER);
 
-      Process process = pb.start();
-      StreamGobbler.showFullProcess(process);
-      
-      File resultFolder = TestConstants.CURRENT_RESULTS.listFiles()[0];
-      File resultFile = resultFolder.listFiles((FileFilter) new WildcardFileFilter("*.dat"))[0];
-      return resultFile;
+      String logs = getLogsFromProcessBuilder(pb);
+      return logs;
    }
    
    public static void cleanTempDir() throws IOException {

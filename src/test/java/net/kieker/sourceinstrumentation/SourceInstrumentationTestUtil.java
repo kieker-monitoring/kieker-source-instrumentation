@@ -16,22 +16,19 @@ import net.kieker.sourceinstrumentation.util.TestConstants;
 public class SourceInstrumentationTestUtil {
    
    public static void initSimpleProject(final String sourcePath) throws IOException {
-      FileUtils.deleteDirectory(TestConstants.CURRENT_FOLDER);
-      SimpleProjectUtil.cleanTempDir();
-      TestConstants.CURRENT_FOLDER.mkdirs();
+      clean();
       
       for (String path : new String[] {"src/main/java/de/peass/C0_0.java", 
             "src/test/java/de/peass/MainTest.java"}) {
          copyResource(path, sourcePath);
       }
       copyGenericPom();
-      
-      for (String path : new String[] {
-            "src/main/java/de/peass/C1_0.java", 
-            "src/main/java/de/peass/AddRandomNumbers.java"}) {
-         File testFile = new File(TestConstants.CURRENT_FOLDER, path);
-         testFile.delete();
-      }
+   }
+
+   private static void clean() throws IOException {
+      FileUtils.deleteDirectory(TestConstants.CURRENT_FOLDER);
+      SimpleProjectUtil.cleanTempDir();
+      TestConstants.CURRENT_FOLDER.mkdirs();
    }
 
    private static void copyGenericPom() throws IOException {
@@ -41,7 +38,7 @@ public class SourceInstrumentationTestUtil {
    }
    
    public static void initProject(final String sourcePath) throws IOException {
-      TestConstants.CURRENT_FOLDER.mkdirs();
+      clean();
       
       for (String path : new String[] {"src/main/java/de/peass/C0_0.java", 
             "src/main/java/de/peass/C1_0.java", 
