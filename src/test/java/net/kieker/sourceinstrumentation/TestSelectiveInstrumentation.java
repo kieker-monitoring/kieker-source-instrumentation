@@ -8,7 +8,6 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 import net.kieker.sourceinstrumentation.instrument.InstrumentKiekerSource;
-import net.kieker.sourceinstrumentation.util.SourceInstrumentationTestUtil;
 import net.kieker.sourceinstrumentation.util.TestConstants;
 
 public class TestSelectiveInstrumentation {
@@ -19,7 +18,7 @@ public class TestSelectiveInstrumentation {
       Set<String> includedPatterns = new HashSet<>();
       includedPatterns.add("public void de.peass.MainTest.testMe()");
       
-      InstrumentationConfiguration kiekerConfiguration = new InstrumentationConfiguration(AllowedKiekerRecord.OPERATIONEXECUTION, false, includedPatterns, false, true, 1000);
+      InstrumentationConfiguration kiekerConfiguration = new InstrumentationConfiguration(AllowedKiekerRecord.OPERATIONEXECUTION, false, includedPatterns, false, true, 1000, false);
       InstrumentKiekerSource instrumenter = new InstrumentKiekerSource(kiekerConfiguration);
       instrumenter.instrumentProject(TestConstants.CURRENT_FOLDER);
 

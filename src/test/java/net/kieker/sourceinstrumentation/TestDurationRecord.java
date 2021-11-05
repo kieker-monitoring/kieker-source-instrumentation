@@ -12,10 +12,9 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
 import net.kieker.sourceinstrumentation.instrument.InstrumentKiekerSource;
-import net.kieker.sourceinstrumentation.util.SourceInstrumentationTestUtil;
 import net.kieker.sourceinstrumentation.util.TestConstants;
 
-public class TestSampling {
+public class TestDurationRecord {
    @Test
    public void testSingleSelectiveInstrumentation() throws Exception {
       SourceInstrumentationTestUtil.initProject("/project_2/");
@@ -23,7 +22,7 @@ public class TestSampling {
       Set<String> includedPatterns = new HashSet<>();
       includedPatterns.add("public void de.peass.MainTest.testMe()");
 
-      InstrumentationConfiguration kiekerConfiguration = new InstrumentationConfiguration(AllowedKiekerRecord.REDUCED_OPERATIONEXECUTION, true, includedPatterns, false, false, 1000);
+      InstrumentationConfiguration kiekerConfiguration = new InstrumentationConfiguration(AllowedKiekerRecord.DURATION, true, includedPatterns, false, false, 1000, false);
       InstrumentKiekerSource instrumenter = new InstrumentKiekerSource(kiekerConfiguration);
       instrumenter.instrumentProject(TestConstants.CURRENT_FOLDER);
 
@@ -40,7 +39,7 @@ public class TestSampling {
       includedPatterns.add("public java.lang.String de.peass.C0_0.method0(java.lang.String)");
       includedPatterns.add("public static void de.peass.C0_0.myStaticStuff()");
 
-      InstrumentationConfiguration kiekerConfiguration = new InstrumentationConfiguration(AllowedKiekerRecord.REDUCED_OPERATIONEXECUTION, true, includedPatterns, false, false, 1000);
+      InstrumentationConfiguration kiekerConfiguration = new InstrumentationConfiguration(AllowedKiekerRecord.DURATION, true, includedPatterns, false, false, 1000, false);
       InstrumentKiekerSource instrumenter = new InstrumentKiekerSource(kiekerConfiguration);
       instrumenter.instrumentProject(TestConstants.CURRENT_FOLDER);
 
@@ -53,7 +52,7 @@ public class TestSampling {
    private void testIsSamplingInstrumented(final String filename, final String instrumentedMethod, final String counterName) throws IOException {
       final File instrumentedFile = new File(TestConstants.CURRENT_FOLDER, filename);
       TestSourceInstrumentation.testFileIsInstrumented(instrumentedFile,
-            instrumentedMethod, "ReducedOperationExecutionRecord");
+            instrumentedMethod, "DurationRecord");
 
       String changedSource = FileUtils.readFileToString(instrumentedFile, StandardCharsets.UTF_8);
       MatcherAssert.assertThat(changedSource, Matchers.containsString("if (" + InstrumentationConstants.PREFIX + counterName));

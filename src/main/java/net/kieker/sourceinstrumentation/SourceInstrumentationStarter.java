@@ -6,13 +6,17 @@ import java.util.concurrent.Callable;
 
 import net.kieker.sourceinstrumentation.instrument.InstrumentKiekerSource;
 import picocli.CommandLine;
+import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 
-public class SourceInstrumentationStarter implements Callable<Integer>{
-   
+public class SourceInstrumentationStarter implements Callable<Integer> {
+
    @Option(names = { "-folder", "--folder" }, description = "Folder where files should be instrumented", required = true)
    private File projectFolder;
-   
+
+   @Mixin
+   private InstrumentationConfigMixin instrumentationConfigMixin;
+
    public static void main(final String[] args) {
       final CommandLine commandLine = new CommandLine(new SourceInstrumentationStarter());
       commandLine.execute(args);
@@ -20,11 +24,30 @@ public class SourceInstrumentationStarter implements Callable<Integer>{
 
    @Override
    public Integer call() throws Exception {
-      final HashSet<String> includedPatterns = new HashSet<>();
-      includedPatterns.add("*");
-      final InstrumentationConfiguration configuration = new InstrumentationConfiguration(AllowedKiekerRecord.OPERATIONEXECUTION, false, true, false, includedPatterns, true, 1000);
+      final HashSet<String> includedPatterns = createIncludedPatterns();
+
+      final InstrumentationConfiguration configuration = new InstrumentationConfiguration(instrumentationConfigMixin.getUsedRecord(), instrumentationConfigMixin.isAggregate(),
+            instrumentationConfigMixin.isCreateDefaultConstructor(),
+            instrumentationConfigMixin.isEnableAdaptiveMonitoring(), includedPatterns, !instrumentationConfigMixin.isDisableDeactivation(),
+            instrumentationConfigMixin.getAggregationCount(), instrumentationConfigMixin.isExtractMethod());
+      for (String pattern : instrumentationConfigMixin.getExcludedPatterns()) {
+         configuration.getExcludedPatterns().add(pattern);
+      }
+
       final InstrumentKiekerSource sourceInstrumenter = new InstrumentKiekerSource(configuration);
-      sourceInstrumenter.instrumentProject(projectFolder);;
+      sourceInstrumenter.instrumentProject(projectFolder);
       return 0;
+   }
+
+   private HashSet<String> createIncludedPatterns() {
+      final HashSet<String> includedPatterns = new HashSet<>();
+      if (instrumentationConfigMixin.getIncludedPatterns().isEmpty()) {
+         includedPatterns.add("*");
+      } else {
+         for (String pattern : instrumentationConfigMixin.getIncludedPatterns()) {
+            includedPatterns.add(pattern);
+         }
+      }
+      return includedPatterns;
    }
 }

@@ -10,7 +10,6 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
 import net.kieker.sourceinstrumentation.instrument.InstrumentKiekerSource;
-import net.kieker.sourceinstrumentation.util.SourceInstrumentationTestUtil;
 import net.kieker.sourceinstrumentation.util.TestConstants;
 
 public class TestSourceInstrumentation {
@@ -26,13 +25,14 @@ public class TestSourceInstrumentation {
 
       testFileIsInstrumented(testFile, "public void de.peass.C0_0.method0()", "OperationExecutionRecord");
    }
-
+   
    @Test
    public void testUtilClass() throws IOException {
       TestConstants.CURRENT_FOLDER.mkdirs();
 
       File testFile = new File(TestConstants.CURRENT_FOLDER, "Utils.java");
-      FileUtils.copyFile(new File("src/test/resources/Utils.java"), testFile);
+      FileUtils.copyFile(new File(TestConstants.RESOURCE_FOLDER, "Utils.java"), testFile);
+      // File testFile = SourceInstrumentationTestUtil.copyResource("Utils.java", "/sourceInstrumentation/");
 
       InstrumentKiekerSource instrumenter = new InstrumentKiekerSource(AllowedKiekerRecord.OPERATIONEXECUTION);
       instrumenter.instrument(testFile);
@@ -40,6 +40,31 @@ public class TestSourceInstrumentation {
       testFileIsInstrumented(testFile, "public static java.util.Date com.test.Utils.utilMethod(java.lang.String)", "OperationExecutionRecord");
    }
 
+   @Test
+   public void testGenericsClass() throws IOException {
+      TestConstants.CURRENT_FOLDER.mkdirs();
+
+      File testFile = SourceInstrumentationTestUtil.copyResource("src/main/java/de/peass/C0_0.java", "/project_2_complex/");
+
+      InstrumentKiekerSource instrumenter = new InstrumentKiekerSource(AllowedKiekerRecord.OPERATIONEXECUTION);
+      instrumenter.instrument(testFile);
+
+      testFileIsInstrumented(testFile, "public java.util.Collection de.peass.C0_0.myCollection(java.util.List)", "OperationExecutionRecord");
+      testFileIsInstrumented(testFile, "public java.util.Collection[] de.peass.C0_0.myCollection2(java.util.List)", "OperationExecutionRecord");
+   }
+   
+   @Test
+   public void testNoPackageClass() throws IOException {
+      TestConstants.CURRENT_FOLDER.mkdirs();
+
+      File testFile = SourceInstrumentationTestUtil.copyResource("src/main/java/NoPackageExample.java", "/project_2_complex/");
+
+      InstrumentKiekerSource instrumenter = new InstrumentKiekerSource(AllowedKiekerRecord.OPERATIONEXECUTION);
+      instrumenter.instrument(testFile);
+
+      testFileIsInstrumented(testFile, "public ReturnType NoPackageExample.newStuff", "OperationExecutionRecord");
+   }
+   
    public static void testFileIsInstrumented(final File testFile, final String fqn, final String recordName) throws IOException {
       String changedSource = FileUtils.readFileToString(testFile, StandardCharsets.UTF_8);
 
@@ -93,7 +118,7 @@ public class TestSourceInstrumentation {
    public void testDifferentSignatures() throws IOException {
       SourceInstrumentationTestUtil.initProject("/project_2_signatures/");
 
-      InstrumentKiekerSource instrumenter = new InstrumentKiekerSource(AllowedKiekerRecord.REDUCED_OPERATIONEXECUTION);
+      InstrumentKiekerSource instrumenter = new InstrumentKiekerSource(AllowedKiekerRecord.DURATION);
       instrumenter.instrumentProject(TestConstants.CURRENT_FOLDER);
 
       String changedSource = FileUtils.readFileToString(new File(TestConstants.CURRENT_FOLDER, "src/main/java/de/peass/C0_0.java"), StandardCharsets.UTF_8);

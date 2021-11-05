@@ -14,10 +14,10 @@ public class MavenPomUtil {
 
       final String scope = "";
 
-      final Dependency kopeme_dependency = getDependency("de.dagere.kopeme", "0.13", scope, "kopeme-junit");
+      final Dependency kopeme_dependency = getDependency("de.dagere.kopeme", "0.15", scope, "kopeme-junit");
       dependencies.add(kopeme_dependency);
 
-      final Dependency kieker_dependency2 = getDependency("net.kieker-monitoring", "1.14", "", "kieker");
+      final Dependency kieker_dependency2 = getDependency("net.kieker-monitoring", "1.15", "", "kieker");
       dependencies.add(kieker_dependency2);
    }
 
