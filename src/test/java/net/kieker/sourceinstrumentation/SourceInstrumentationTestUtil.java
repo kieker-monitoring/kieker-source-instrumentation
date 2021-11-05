@@ -15,6 +15,9 @@ import net.kieker.sourceinstrumentation.util.TestConstants;
 public class SourceInstrumentationTestUtil {
    
    public static void initSimpleProject(final String sourcePath) throws IOException {
+      if (TestConstants.CURRENT_FOLDER.exists()) {
+         FileUtils.cleanDirectory(TestConstants.CURRENT_FOLDER);
+      }
       TestConstants.CURRENT_FOLDER.mkdirs();
       
       for (String path : new String[] {"src/main/java/de/peass/C0_0.java", 
