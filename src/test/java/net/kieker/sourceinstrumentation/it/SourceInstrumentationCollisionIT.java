@@ -2,10 +2,8 @@ package net.kieker.sourceinstrumentation.it;
 
 import java.io.IOException;
 
-import org.apache.commons.io.FileUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import net.kieker.sourceinstrumentation.AllowedKiekerRecord;
@@ -14,15 +12,6 @@ import net.kieker.sourceinstrumentation.instrument.InstrumentKiekerSource;
 import net.kieker.sourceinstrumentation.util.TestConstants;
 
 public class SourceInstrumentationCollisionIT {
-
-   
-
-   @BeforeEach
-   public void before() throws IOException {
-      FileUtils.deleteDirectory(TestConstants.CURRENT_FOLDER);
-
-      SimpleProjectUtil.cleanTempDir();
-   }
 
    @Test
    public void testExecution() throws IOException {

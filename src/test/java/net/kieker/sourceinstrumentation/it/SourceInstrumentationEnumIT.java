@@ -5,10 +5,8 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
-import org.apache.commons.io.FileUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import net.kieker.sourceinstrumentation.AllowedKiekerRecord;
@@ -19,13 +17,6 @@ import net.kieker.sourceinstrumentation.instrument.InstrumentKiekerSource;
 import net.kieker.sourceinstrumentation.util.TestConstants;
 
 public class SourceInstrumentationEnumIT {
-
-   @BeforeEach
-   public void before() throws IOException {
-      FileUtils.deleteDirectory(TestConstants.CURRENT_FOLDER);
-      
-      SimpleProjectUtil.cleanTempDir();
-   }
 
    public File writeAdaptiveInstrumentationInfo() throws IOException {
       final File configFolder = new File(TestConstants.CURRENT_FOLDER, "config");

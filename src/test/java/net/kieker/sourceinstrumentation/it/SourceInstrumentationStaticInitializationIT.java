@@ -7,18 +7,9 @@ import java.nio.charset.StandardCharsets;
 import org.apache.commons.io.FileUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import net.kieker.sourceinstrumentation.util.TestConstants;
-
 public class SourceInstrumentationStaticInitializationIT {
-   
-   @BeforeEach
-   public void before() throws IOException {
-      FileUtils.deleteDirectory(TestConstants.CURRENT_FOLDER);
-   }
-
 
    @Test
    public void testExecution() throws IOException {

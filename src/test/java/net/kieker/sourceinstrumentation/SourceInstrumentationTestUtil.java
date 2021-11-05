@@ -9,15 +9,15 @@ import org.apache.commons.io.FileUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 
+import net.kieker.sourceinstrumentation.it.SimpleProjectUtil;
 import net.kieker.sourceinstrumentation.util.TestConstants;
 
 
 public class SourceInstrumentationTestUtil {
    
    public static void initSimpleProject(final String sourcePath) throws IOException {
-      if (TestConstants.CURRENT_FOLDER.exists()) {
-         FileUtils.cleanDirectory(TestConstants.CURRENT_FOLDER);
-      }
+      FileUtils.deleteDirectory(TestConstants.CURRENT_FOLDER);
+      SimpleProjectUtil.cleanTempDir();
       TestConstants.CURRENT_FOLDER.mkdirs();
       
       for (String path : new String[] {"src/main/java/de/peass/C0_0.java", 

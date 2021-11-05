@@ -18,22 +18,17 @@ public class SimpleProjectUtil {
    public static File obtainLogs(final String projectFolder) throws IOException {
       SourceInstrumentationTestUtil.initSimpleProject(projectFolder);
 
-      File tempFolder = new File(TestConstants.CURRENT_FOLDER, "results");
-      if (!tempFolder.mkdir()) {
-         throw new RuntimeException("Could not create directory: " + tempFolder.getAbsolutePath());
-      }
-
       InstrumentKiekerSource instrumenter = new InstrumentKiekerSource(AllowedKiekerRecord.OPERATIONEXECUTION);
       instrumenter.instrumentProject(TestConstants.CURRENT_FOLDER);
 
       final ProcessBuilder pb = new ProcessBuilder("mvn", "test", 
-            "-Djava.io.tmpdir=" + tempFolder.getAbsolutePath());
+            "-Djava.io.tmpdir=" + TestConstants.CURRENT_RESULTS.getAbsolutePath());
       pb.directory(TestConstants.CURRENT_FOLDER);
 
       Process process = pb.start();
       StreamGobbler.showFullProcess(process);
       
-      File resultFolder = tempFolder.listFiles()[0];
+      File resultFolder = TestConstants.CURRENT_RESULTS.listFiles()[0];
       File resultFile = resultFolder.listFiles((FileFilter) new WildcardFileFilter("*.dat"))[0];
       return resultFile;
    }
