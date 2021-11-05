@@ -20,17 +20,23 @@ import net.kieker.sourceinstrumentation.util.TestConstants;
 
 public class SourceInstrumentationCollisionIT {
 
+   private static File tempFolder = new File(TestConstants.CURRENT_FOLDER, "results");
+
    @BeforeEach
    public void before() throws IOException {
       FileUtils.deleteDirectory(TestConstants.CURRENT_FOLDER);
+
+      if (tempFolder.exists()) {
+         FileUtils.cleanDirectory(tempFolder);
+      }
+      if (!tempFolder.mkdirs()) {
+         throw new RuntimeException("Could not create " + tempFolder.getAbsolutePath());
+      }
    }
 
    @Test
    public void testExecution() throws IOException {
       SourceInstrumentationTestUtil.initSimpleProject("/example_nameCollision/");
-
-      File tempFolder = new File(TestConstants.CURRENT_FOLDER, "results");
-      tempFolder.mkdir();
 
       InstrumentKiekerSource instrumenter = new InstrumentKiekerSource(AllowedKiekerRecord.OPERATIONEXECUTION);
       instrumenter.instrumentProject(TestConstants.CURRENT_FOLDER);
