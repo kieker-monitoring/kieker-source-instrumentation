@@ -7,14 +7,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashSet;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import net.kieker.sourceinstrumentation.AllowedKiekerRecord;
@@ -25,16 +23,6 @@ import net.kieker.sourceinstrumentation.util.MavenPomUtil;
 import net.kieker.sourceinstrumentation.util.TestConstants;
 
 public class DurationRecordSourceInstrumentationIT {
-
-
-   @BeforeEach
-   public void before() throws IOException {
-      FileUtils.deleteDirectory(TestConstants.CURRENT_FOLDER);
-
-      SourceInstrumentationTestUtil.initProject("/project_2/");
-
-      SimpleProjectUtil.cleanTempDir();
-   }
 
    @Test
    public void testExecution() throws IOException, XmlPullParserException {

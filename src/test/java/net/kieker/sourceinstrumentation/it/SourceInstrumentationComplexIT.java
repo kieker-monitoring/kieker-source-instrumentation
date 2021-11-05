@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
-import org.apache.commons.io.FileUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,18 +18,9 @@ import net.kieker.sourceinstrumentation.util.TestConstants;
 
 public class SourceInstrumentationComplexIT {
 
-   private File tempFolder;
-
    @BeforeEach
    public void before() throws IOException {
-      FileUtils.deleteDirectory(TestConstants.CURRENT_FOLDER);
-
       SourceInstrumentationTestUtil.initProject("/project_2_complex/");
-
-      tempFolder = new File(TestConstants.CURRENT_FOLDER, "results");
-      if (!tempFolder.mkdir()) {
-         throw new RuntimeException("Can not create existing directory: " + tempFolder.getAbsolutePath());
-      }
    }
 
    public File writeAdaptiveInstrumentationInfo() throws IOException {
@@ -54,7 +44,7 @@ public class SourceInstrumentationComplexIT {
       instrumenter.instrumentProject(TestConstants.CURRENT_FOLDER);
 
       final ProcessBuilder pb = new ProcessBuilder("mvn", "test",
-            "-Djava.io.tmpdir=" + tempFolder.getAbsolutePath(),
+            "-Djava.io.tmpdir=" + TestConstants.CURRENT_RESULTS.getAbsolutePath(),
             "-Dkieker.monitoring.adaptiveMonitoring.enabled=true",
             "-Dkieker.monitoring.adaptiveMonitoring.configFile=" + adaptiveFile.getAbsolutePath(),
             "-Dkieker.monitoring.adaptiveMonitoring.readInterval=1");

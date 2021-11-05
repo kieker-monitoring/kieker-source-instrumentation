@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.commons.io.FileUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,11 +19,7 @@ public class SelectiveSourceInstrumentationIT {
    
    @BeforeEach
    public void before() throws IOException {
-      FileUtils.deleteDirectory(TestConstants.CURRENT_FOLDER);
-      
       SourceInstrumentationTestUtil.initProject("/project_2/");
-      
-      SimpleProjectUtil.cleanTempDir();
    }
 
    @Test

@@ -2,7 +2,6 @@ package net.kieker.sourceinstrumentation.it;
 
 import java.io.IOException;
 
-import org.apache.commons.io.FileUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,11 +17,7 @@ public class SourceInstrumentationUnreachableIT {
    
    @BeforeEach
    public void before() throws IOException {
-      FileUtils.deleteDirectory(TestConstants.CURRENT_FOLDER);
-      
       SourceInstrumentationTestUtil.initProject("/project_2_unreachable/");
-      
-      SimpleProjectUtil.cleanTempDir();
    }
 
    @Test
