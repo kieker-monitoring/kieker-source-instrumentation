@@ -30,9 +30,11 @@ public class SourceInstrumentationStarter implements Callable<Integer> {
             instrumentationConfigMixin.isCreateDefaultConstructor(),
             instrumentationConfigMixin.isEnableAdaptiveMonitoring(), includedPatterns, !instrumentationConfigMixin.isDisableDeactivation(),
             instrumentationConfigMixin.getAggregationCount(), instrumentationConfigMixin.isExtractMethod());
-      for (String pattern : instrumentationConfigMixin.getExcludedPatterns()) {
-         configuration.getExcludedPatterns().add(pattern);
-      }
+      if (instrumentationConfigMixin.getExcludedPatterns() != null){
+	      for (String pattern : instrumentationConfigMixin.getExcludedPatterns()) {
+                  configuration.getExcludedPatterns().add(pattern);
+              }
+      } 
 
       final InstrumentKiekerSource sourceInstrumenter = new InstrumentKiekerSource(configuration);
       sourceInstrumenter.instrumentProject(projectFolder);
