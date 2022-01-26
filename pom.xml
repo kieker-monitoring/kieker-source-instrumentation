@@ -3,14 +3,14 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>de.dagere.kieker</groupId>
+	<groupId>net.kieker-monitoring.source-instrumentation</groupId>
 	<artifactId>kieker-source-instrumentation-parent</artifactId>
-	<version>1.15.8-SNAPSHOT</version>
+	<version>1.15.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<name>kieker-source-instrumentation-parent</name>
 	<description>Enables the instrumentation of Java projects by automatic insertion of the source code</description>
-	<url>https://github.com/DaGeRe/kieker-source-instrumentation-dagere/</url>
+	<url>https://github.com/kieker-monitoring/kieker-source-instrumentation/</url>
 
 	<properties>
 		<additionalparam>-Xdoclint:none</additionalparam>
@@ -64,9 +64,9 @@
 	</developers>
 
 	<scm>
-		<connection>scm:git:ssh://github.com:DaGeRe/kieker-source-instrumentation-dagere.git</connection>
-		<developerConnection>scm:git:git@github.com:DaGeRe/kieker-source-instrumentation-dagere.git</developerConnection>
-		<url>https://git@github.com:DaGeRe/kieker-source-instrumentation-dagere.git</url>
+		<connection>scm:git:ssh://github.com:kieker-monitoring/kieker-source-instrumentation.git</connection>
+		<developerConnection>scm:git:git@github.com:kieker-monitoring/kieker-source-instrumentation.git</developerConnection>
+		<url>https://git@github.com:kieker-monitoring/kieker-source-instrumentation.git</url>
 		<tag>HEAD</tag>
 	</scm>
 </project>
