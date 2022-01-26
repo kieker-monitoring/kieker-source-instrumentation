@@ -3,6 +3,7 @@ package net.kieker.sourceinstrumentation.instrument;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.TrueFileFilter;
@@ -26,8 +27,9 @@ public class InstrumentKiekerSource {
    private InstrumentationConfiguration configuration;
 
    public InstrumentKiekerSource(final AllowedKiekerRecord usedRecord) {
-      configuration = new InstrumentationConfiguration(usedRecord, false, true, true, new HashSet<>(), false, 1000, false);
-      configuration.getIncludedPatterns().add("*");
+      Set<String> includedPatterns = new HashSet<>();
+      includedPatterns.add("*");
+      configuration = new InstrumentationConfiguration(usedRecord, false, true, true, includedPatterns, false, 1000, false);
    }
 
    public InstrumentKiekerSource(final InstrumentationConfiguration configuration) {

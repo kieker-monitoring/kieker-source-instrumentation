@@ -2,6 +2,7 @@ package net.kieker.sourceinstrumentation;
 
 import java.io.File;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import net.kieker.sourceinstrumentation.instrument.InstrumentKiekerSource;
@@ -26,15 +27,14 @@ public class SourceInstrumentationStarter implements Callable<Integer> {
    public Integer call() throws Exception {
       final HashSet<String> includedPatterns = createIncludedPatterns();
 
+      Set<String> excludedPattern = new HashSet<>();
+      for (String pattern : instrumentationConfigMixin.getExcludedPatterns()) {
+         excludedPattern.add(pattern);
+      }
       final InstrumentationConfiguration configuration = new InstrumentationConfiguration(instrumentationConfigMixin.getUsedRecord(), instrumentationConfigMixin.isAggregate(),
             instrumentationConfigMixin.isCreateDefaultConstructor(),
-            instrumentationConfigMixin.isEnableAdaptiveMonitoring(), includedPatterns, !instrumentationConfigMixin.isDisableDeactivation(),
-            instrumentationConfigMixin.getAggregationCount(), instrumentationConfigMixin.isExtractMethod());
-      if (instrumentationConfigMixin.getExcludedPatterns() != null){
-	      for (String pattern : instrumentationConfigMixin.getExcludedPatterns()) {
-                  configuration.getExcludedPatterns().add(pattern);
-              }
-      } 
+            instrumentationConfigMixin.isEnableAdaptiveMonitoring(), includedPatterns, excludedPattern,
+            !instrumentationConfigMixin.isDisableDeactivation(), instrumentationConfigMixin.getAggregationCount(), instrumentationConfigMixin.isExtractMethod());
 
       final InstrumentKiekerSource sourceInstrumenter = new InstrumentKiekerSource(configuration);
       sourceInstrumenter.instrumentProject(projectFolder);

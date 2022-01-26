@@ -50,7 +50,7 @@ public class TypeInstrumenter {
    public TypeInstrumenter(final InstrumentationConfiguration configuration, final CompilationUnit unit, final TypeDeclaration<?> topLevelType) {
       this.configuration = configuration;
       this.blockBuilder = configuration.getBlockBuilder();
-      this.checker = new SignatureMatchChecker(configuration.getIncludedPatterns(), configuration.getExcludedPatterns());
+      this.checker = configuration.getChecker();
       this.unit = unit;
       this.topLevelType = topLevelType;
       transformer = new CodeBlockTransformer(topLevelType);

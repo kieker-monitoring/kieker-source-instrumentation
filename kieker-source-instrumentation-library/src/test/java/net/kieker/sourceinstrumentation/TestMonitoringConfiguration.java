@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.hamcrest.MatcherAssert;
@@ -14,8 +15,13 @@ import net.kieker.sourceinstrumentation.instrument.InstrumentKiekerSource;
 import net.kieker.sourceinstrumentation.util.TestConstants;
 
 public class TestMonitoringConfiguration {
-
-   public static final InstrumentationConfiguration CONFIGURATION_EXAMPLE = new InstrumentationConfiguration(AllowedKiekerRecord.OPERATIONEXECUTION, false, new HashSet<>(), false, true, 1000, false);
+   
+   private static final Set<String> includedPatterns = new HashSet<>();
+   static {
+      includedPatterns.add("*");
+   }
+   
+   public static final InstrumentationConfiguration CONFIGURATION_EXAMPLE = new InstrumentationConfiguration(AllowedKiekerRecord.OPERATIONEXECUTION, false, includedPatterns, false, true, 1000, false);
    
    @Test
    public void testAdaptiveMonitoringDeactivated() throws IOException {
@@ -23,8 +29,6 @@ public class TestMonitoringConfiguration {
 
       File testFile = SourceInstrumentationTestUtil.copyResource("src/main/java/de/peass/C0_0.java", "/project_2/");
 
-      CONFIGURATION_EXAMPLE.getIncludedPatterns().add("*");
-      
       InstrumentKiekerSource instrumenter = new InstrumentKiekerSource(CONFIGURATION_EXAMPLE);
       instrumenter.instrument(testFile);
 

@@ -79,6 +79,30 @@ public class TestUnreachabilityDecider {
    }
    
    @Test
+   public void testIfElse() {
+      CompilationUnit unit = new JavaParser().parse("class Test { int val; public void test() { "
+            + "int value = 5; if (value == 6){ "
+            + "throw new RuntimeException();} else {"
+            + "throw new RuntimeException();}"
+            + "}}").getResult().get();
+      MethodDeclaration method = unit.getClassByName("Test").get().getMethodsByName("test").get(0);
+      boolean isUnreachable = ReachabilityDecider.isAfterUnreachable(method.getBody().get());
+      Assert.assertTrue(isUnreachable);
+   }
+   
+   @Test
+   public void testIfElseReachable() {
+      CompilationUnit unit = new JavaParser().parse("class Test { int val; public void test() { "
+            + "int value = 5; if (value == 6){ "
+            + "} else {"
+            + "throw new RuntimeException();}"
+            + "}}").getResult().get();
+      MethodDeclaration method = unit.getClassByName("Test").get().getMethodsByName("test").get(0);
+      boolean isUnreachable = ReachabilityDecider.isAfterUnreachable(method.getBody().get());
+      Assert.assertFalse(isUnreachable);
+   }
+   
+   @Test
    public void testSynchronizedSwitch() {
       CompilationUnit unit = new JavaParser().parse("class Test { int val; public void test() { "
             + "synchronized (this) {switch (val) { "
@@ -88,4 +112,13 @@ public class TestUnreachabilityDecider {
       boolean isUnreachable = ReachabilityDecider.isAfterUnreachable(method.getBody().get());
       Assert.assertTrue(isUnreachable);
    }
+   
+   @Test
+   public void testEndlessFor() {
+      CompilationUnit unit = new JavaParser().parse("class Test { public void test() { for( ; ;) {System.out.println(\"Test\"); }}}").getResult().get();
+      MethodDeclaration method = unit.getClassByName("Test").get().getMethodsByName("test").get(0);
+      boolean isUnreachable = ReachabilityDecider.isAfterUnreachable(method.getBody().get());
+      Assert.assertTrue(isUnreachable);
+   }
 }
+

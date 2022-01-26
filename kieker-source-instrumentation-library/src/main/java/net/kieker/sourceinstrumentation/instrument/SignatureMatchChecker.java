@@ -1,5 +1,6 @@
 package net.kieker.sourceinstrumentation.instrument;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -13,12 +14,31 @@ public class SignatureMatchChecker {
 
    private static final Logger LOG = LogManager.getLogger(FileInstrumenter.class);
 
-   private Set<String> includes;
-   private Set<String> excludes;
+   private final Set<String> includes;
+   private final Set<Pattern> includePatterns = new HashSet<>();
+   private final Set<String> excludes;
+   private final Set<Pattern> excludePatterns = new HashSet<>();
 
    public SignatureMatchChecker(final Set<String> includes, final Set<String> excludes) {
       this.includes = includes;
       this.excludes = excludes;
+
+      populatePatternSet(includes, includePatterns);
+      populatePatternSet(excludes, excludePatterns);
+   }
+
+   private void populatePatternSet(final Set<String> stringPatterns, final Set<Pattern> patternSet) {
+      if (stringPatterns != null) {
+         for (String include : stringPatterns) {
+            String pattern = fixConstructorPattern(include);
+            try {
+               Pattern patternP = PatternParser.parseToPattern(pattern);
+               patternSet.add(patternP);
+            } catch (InvalidPatternException e) {
+               throw new RuntimeException(e);
+            }
+         }
+      }
    }
 
    public boolean testSignatureMatch(final String signature) {
@@ -28,7 +48,7 @@ public class SignatureMatchChecker {
       } else {
          oneMatches = oneIncludeMatches(signature, oneMatches);
       }
-      if (excludes != null) {
+      if (oneMatches && excludes != null) {
          oneMatches = oneExcludeMatches(signature, oneMatches);
       }
 
@@ -36,34 +56,20 @@ public class SignatureMatchChecker {
    }
 
    private boolean oneExcludeMatches(final String signature, boolean oneMatches) {
-      for (String pattern : excludes) {
-         pattern = fixConstructorPattern(pattern);
-         try {
-            Pattern patternP = PatternParser.parseToPattern(pattern);
-            if (patternP.matcher(signature).matches()) {
-               oneMatches = false;
-               break;
-            }
-         } catch (InvalidPatternException e) {
-            LOG.error("Wrong pattern: {}", pattern);
-            throw new RuntimeException(e);
+      for (Pattern pattern : excludePatterns) {
+         if (pattern.matcher(signature).matches()) {
+            oneMatches = false;
+            break;
          }
       }
       return oneMatches;
    }
 
    private boolean oneIncludeMatches(final String signature, boolean oneMatches) {
-      for (String pattern : includes) {
-         pattern = fixConstructorPattern(pattern);
-         try {
-            Pattern patternP = PatternParser.parseToPattern(pattern);
-            if (patternP.matcher(signature).matches()) {
-               oneMatches = true;
-               break;
-            }
-         } catch (InvalidPatternException e) {
-            LOG.error("Wrong pattern: {}", pattern);
-            throw new RuntimeException(e);
+      for (Pattern pattern : includePatterns) {
+         if (pattern.matcher(signature).matches()) {
+            oneMatches = true;
+            break;
          }
       }
       return oneMatches;

@@ -6,6 +6,7 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import net.kieker.sourceinstrumentation.instrument.SignatureMatchChecker;
 import net.kieker.sourceinstrumentation.instrument.codeblocks.AggregationBlockBuilder;
 import net.kieker.sourceinstrumentation.instrument.codeblocks.BlockBuilder;
 
@@ -24,6 +25,7 @@ public class InstrumentationConfiguration {
    private final boolean enableAdaptiveMonitoring;
    private final Set<String> includedPatterns;
    private final Set<String> excludedPatterns;
+   private final SignatureMatchChecker checker;
    private final boolean extractMethod;
 
    /**
@@ -48,6 +50,8 @@ public class InstrumentationConfiguration {
 
       this.createDefaultConstructor = true;
       this.samplingCount = samplingCount;
+      
+      checker = new SignatureMatchChecker(includedPatterns, excludedPatterns);
 
       check();
    }
@@ -72,6 +76,8 @@ public class InstrumentationConfiguration {
       excludedPatterns = new HashSet<String>();
       this.samplingCount = samplingCount;
 
+      checker = new SignatureMatchChecker(includedPatterns, excludedPatterns);
+      
       check();
    }
 
@@ -94,6 +100,8 @@ public class InstrumentationConfiguration {
       this.includedPatterns = includedPatterns;
       this.excludedPatterns = excludedPatterns;
       this.samplingCount = samplingCount;
+      
+      checker = new SignatureMatchChecker(includedPatterns, excludedPatterns);
 
       check();
    }
@@ -125,14 +133,6 @@ public class InstrumentationConfiguration {
       return createDefaultConstructor;
    }
 
-   public Set<String> getIncludedPatterns() {
-      return includedPatterns;
-   }
-
-   public Set<String> getExcludedPatterns() {
-      return excludedPatterns;
-   }
-
    public boolean isEnableAdaptiveMonitoring() {
       return enableAdaptiveMonitoring;
    }
@@ -153,5 +153,9 @@ public class InstrumentationConfiguration {
          blockBuilder = new BlockBuilder(this.getUsedRecord(), this.isEnableDeactivation(), this.isEnableAdaptiveMonitoring());
       }
       return blockBuilder;
+   }
+   
+   public SignatureMatchChecker getChecker() {
+      return checker; 
    }
 }
